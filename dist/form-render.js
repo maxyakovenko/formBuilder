@@ -1,6 +1,6 @@
 /*
-formBuilder - https://formbuilder.online/
-Version: 1.15.0
+formBuilder - http://kevinchappell.github.io/formBuilder/
+Version: 1.14.0
 Author: Kevin Chappell <kevin.b.chappell@gmail.com>
 */
 'use strict';
@@ -168,6 +168,73 @@ function FormRenderFn(options, element) {
    * @return {string}       preview markup for field
    * @todo
    */
+
+
+   /* DRAG EVENTS */
+  $(document).on("dragstart", ".variant", function(event){
+     event.originalEvent.dataTransfer.setData("Text",event.target.innerText);
+  });
+
+  $(document).on("drop", ".dashing", function(event){
+    event.preventDefault();
+    var data = event.originalEvent.dataTransfer.getData("Text");
+     $(this).text(data);
+     $(this).addClass("dropped");
+     $(this).removeClass("dragOver");
+  });
+
+  $(document).on("click", ".dashing.dropped", function(event){
+     $(this).removeClass("dropped");
+     $(this).text("0");
+  });
+
+  $(document).on("dragover", ".dashing", function(event){
+     event.preventDefault();
+     $(this).addClass("dragOver");
+  });
+
+  $(document).on("dragleave", ".dashing", function(event){
+     event.preventDefault();
+     $(this).removeClass("dragOver");
+  });
+
+  $(document).on("dragover drop", "#render .variants span[contenteditable=true]", function(event){
+    event.preventDefault();
+  });
+
+  $(document).on("click", "#render button", function(event){
+    $($("#render ")).each(function( index ) {
+      $(this).find("input[type=checkbox]").each(function( index ) {
+        $(this).attr("checked", $(this).prop("checked"));
+      });
+      $(this).find("input[type=radio]").each(function( index ) {
+        $(this).attr("checked", $(this).prop("checked"));
+      });
+      $(this).find("input[type=text]").each(function( index ) {
+        $(this).attr("value",$(this).val());
+      });
+      $(this).find("textarea").each(function( index ) {
+        $(this).html($(this).val());
+      });
+      $(this).find("select").each(function( index ) {
+        $($(this).children()[$(this).prop("selectedIndex")]).attr("selected","selected");
+      });
+    });
+    console.log($("#render").html());
+  });
+
+
+
+
+
+
+
+  $(document).on("focus", "#render .variants span[contenteditable=true]", function(event){
+     event.preventDefault();
+     $(this).blur();
+  });
+
+
   _helpers.fieldRender = function (field) {
     var fieldMarkup = '',
         fieldLabel = '',
@@ -226,8 +293,8 @@ function FormRenderFn(options, element) {
         var enableOther = false;
         fieldAttrs.type = fieldAttrs.type.replace('-group', '');
 
-        if (fieldAttrs.other) {
-          delete fieldAttrs.other;
+        if (fieldAttrs['other']) {
+          delete fieldAttrs['other'];
           enableOther = true;
         }
 
@@ -248,6 +315,54 @@ function FormRenderFn(options, element) {
               optionAttrsString = _helpers.attrString(optionAttrs);
               optionsMarkup += '<input ' + optionAttrsString + ' /> <label for="' + optionAttrs.id + '">' + el.textContent + '</label><br>';
             });
+
+            if (enableOther) {
+              var optionAttrs = {
+                id: fieldAttrs.id + '-' + 'other',
+                name: optionName,
+                class: fieldAttrs.class + ' other-option'
+              };
+
+              optionAttrsString = _helpers.attrString($.extend({}, fieldAttrs, optionAttrs));
+              optionsMarkup += '<input ' + optionAttrsString + ' /> <label for="' + optionAttrs.id + '">' + opts.label.other + '</label> <input type="text" data-other-id="' + optionAttrs.id + '" id="' + optionAttrs.id + '-value" style="display:none;" />';
+            }
+          })();
+        }
+        fieldMarkup = fieldLabel + '<div class="' + fieldAttrs.type + '-group">' + optionsMarkup + '</div>';
+        break;
+      case 'draggable':
+        var enableOther = false;
+        fieldAttrs.type = fieldAttrs.type.replace('-group', '');
+
+        if (fieldAttrs['other']) {
+          delete fieldAttrs['other'];
+          enableOther = true;
+        }
+        console.log(fieldOptions)
+        if (fieldOptions.length) {
+          (function () {
+            var optionName = fieldAttrs.type === 'checkbox' ? fieldAttrs.name + '[]' : fieldAttrs.name,
+                optionAttrsString = void 0;
+            optionsMarkup += '<div class="variants">';
+            fieldOptions.each(function (index, el) {
+              var optionAttrs = $.extend({}, fieldAttrs, _helpers.parseAttrs(el.attributes));
+              if (optionAttrs.selected) {
+                delete optionAttrs.selected;
+                optionAttrs.checked = null;
+              }
+              optionAttrs.name = optionName;
+              optionAttrs.id = fieldAttrs.id + '-' + index;
+              optionAttrsString = _helpers.attrString(optionAttrs);
+              if (optionAttrs.type != "htmlData") {
+                optionsMarkup += '<div class="variant draggable" draggable="true">' + el.innerHTML + '</div>';
+              }
+              else {
+                var htmlString = el.innerHTML;
+                var str = htmlString.split("linebreak;").join("<br>");
+                optionsMarkup += str;
+              }
+            });
+            optionsMarkup += '</div>';
 
             if (enableOther) {
               var optionAttrs = {
@@ -305,6 +420,9 @@ function FormRenderFn(options, element) {
     return fieldMarkup;
   };
 
+
+
+
   /**
    * Convert camelCase into lowercase-hyphen
    *
@@ -322,7 +440,6 @@ function FormRenderFn(options, element) {
 
   _helpers.attrString = function (attrs) {
     var attributes = [];
-
     for (var attr in attrs) {
       if (attrs.hasOwnProperty(attr)) {
         attr = _helpers.safeAttr(attr, attrs[attr]);
@@ -414,7 +531,7 @@ function FormRenderFn(options, element) {
     }
   };
 
-  var runCallbacks = function runCallbacks() {
+  var runCallbacks = function runCallbacks(fields) {
     otherOptionCB();
   };
 
@@ -442,18 +559,17 @@ function FormRenderFn(options, element) {
 
   if (opts.render) {
     if (opts.container) {
-      var renderedFormWrap = _helpers.markup('div', rendered, { className: 'rendered-form' });
       opts.container = opts.container instanceof jQuery ? opts.container[0] : opts.container;
       opts.container.emptyContainer();
-      opts.container.appendChild(renderedFormWrap);
+      opts.container.appendFormFields(rendered);
     } else if (element) {
-      var _renderedFormWrap = document.querySelector('.rendered-form');
-      if (_renderedFormWrap) {
-        _renderedFormWrap.emptyContainer();
-        _renderedFormWrap.appendFormFields(rendered);
+      var renderedFormWrap = document.querySelector('.rendered-form');
+      if (renderedFormWrap) {
+        renderedFormWrap.emptyContainer();
+        renderedFormWrap.appendFormFields(rendered);
       } else {
-        _renderedFormWrap = _helpers.markup('div', rendered, { className: 'rendered-form' });
-        element.parentNode.insertBefore(_renderedFormWrap, element.nextSibling);
+        renderedFormWrap = _helpers.markup('div', rendered, { className: 'rendered-form' });
+        element.parentNode.insertBefore(renderedFormWrap, element.nextSibling);
         element.style.display = 'none';
         element.setAttribute('disabled', 'disabled');
       }
@@ -478,5 +594,6 @@ function FormRenderFn(options, element) {
       var formRender = new FormRenderFn(options, this);
       return formRender;
     });
+    $("#render").append("<button class='btn btn-primary'>Отправить</button");
   };
 })(jQuery);
