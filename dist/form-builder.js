@@ -697,7 +697,7 @@ function formBuilderHelpersFn(opts, formBuilder) {
         preview = '<form action="/file-upload" class="dropzone" id="my-awesome-dropzone"></form>';
         setTimeout(function(){
           $(".dropzone").dropzone({ url: "/file/post" });
-        }, 1000);
+        }, 100);
         break;
       case 'draggable':
         var type = attrs.type.replace('-group', ''),
@@ -1356,7 +1356,7 @@ function formBuilderEventsFn() {
         checkbox: 'Checkbox',
         checkboxes: 'Checkboxes',
         className: 'Class',
-        draggable: 'Draggable',
+        draggable: 'Fill in the word',
         clearAllMessage: 'Are you sure you want to clear all fields?',
         clearAll: 'Clear',
         close: 'Close',
@@ -2122,7 +2122,7 @@ function formBuilderEventsFn() {
       // Class
       advFields.push(textAttribute('className', values));
 
-      // advFields.push(textAttribute('name', values));
+      advFields.push(textAttribute('name', values));
 
       // advFields.push('<div class="form-group access-wrap"><label>' + opts.messages.roles + '</label>');
       //
@@ -2716,7 +2716,10 @@ function formBuilderEventsFn() {
         formBuilder = new FormBuilder(options, element);
         $(element).data('formBuilder', formBuilder);
       }
+      $("<button class='btn btn-disabled'>Отправить</button>").insertAfter($(".frmb"));
+      console.log($(".frmb"));
     });
+    $()
   };
 })(jQuery);
 'use strict';
