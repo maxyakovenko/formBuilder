@@ -288,6 +288,12 @@ function FormRenderFn(options, element) {
         }
         fieldMarkup = fieldLabel + '<select ' + fieldAttrsString + '>' + optionsMarkup + '</select>';
         break;
+      case 'content':
+        console.log("CONTENT", fieldAttrsString);
+        delete fieldAttrs.type;
+        delete fieldAttrs.value;
+        fieldMarkup = fieldLabel + '<textarea ' + fieldAttrsString + '></textarea>';
+        break;
       case 'checkbox-group':
       case 'radio-group':
         var enableOther = false;

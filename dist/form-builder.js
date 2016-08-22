@@ -537,6 +537,7 @@ function formBuilderHelpersFn(opts, formBuilder) {
     }
 
     previewData.className = $('.fld-className', field).val() || fieldData.className || '';
+    console.log(previewData.className);
 
     var placeholder = $('.fld-placeholder', field).val();
     if (placeholder) {
@@ -587,13 +588,25 @@ function formBuilderHelpersFn(opts, formBuilder) {
         previewData.values.push(option);
       });
     }
-
+    if (fieldType.match(/(content)/)) {
+      console.log(fieldData);
+      if(typeof fieldData.attrs != 'undefined') {
+        previewData.editorContent = fieldData.attrs['editor-content'];
+      }
+      else if(typeof fieldData.editorContent != 'undefined') {
+        previewData.editorContent = fieldData.editorContent;
+      }
+    }
     previewData.className = _helpers.classNames(field, previewData);
     $('.fld-className', field).val(previewData.className);
     field.data('fieldData', previewData);
     preview = _helpers.fieldPreview(previewData);
+    if (fieldType.match(/(content)/)) {
+      console.log(preview, previewData);
+    }
 
     $prevHolder.html(preview);
+
 
     $('input[toggle]', $prevHolder).kcToggle();
   };
@@ -614,10 +627,33 @@ function formBuilderHelpersFn(opts, formBuilder) {
     var toggle = attrs.toggle ? 'toggle' : '';
     // attrs = _helpers.escapeAttrs(attrs);
     var attrsString = _helpers.attrString(attrs);
+    var tempValue = '';
     switch (attrs.type) {
       case 'textarea':
       case 'rich-text':
         preview = '<textarea ' + attrsString + '></textarea>';
+        break;
+      case 'content-area':
+        if (attrs.editorContent) {
+          preview = '<textarea ' + attrsString + '>' + attrs.editorContent + '</textarea>';
+        }
+        else {
+          preview = '<textarea ' + attrsString + '></textarea>';
+        }
+
+        setTimeout(function(){
+          $(".text-area").html($(".hideContent").html());
+          var element = $(".content-area").tinymce({
+            script_url: "http://cdn.tinymce.com/4/tinymce.min.js",
+            plugins: "code, codesample, textcolor, colorpicker, fullscreen, image, link, media, preview, table, autoresize",
+            height: 300
+          })
+          console.log(element, "ELEMENTA");
+          // var data = ;
+          // tinyMCE.activeEditor.setContent(data + " html");
+          /*tinymce.get("editorContent").setContent($(".hideContent").html());*/
+          // element.html($(".hideContent").html());
+        }, 100);
         break;
       case 'button':
       case 'submit':
@@ -1315,7 +1351,7 @@ function formBuilderEventsFn() {
 
     var defaults = {
       controlPosition: 'right',
-      controlOrder: ['autocomplete', 'button', 'checkbox', 'checkbox-group', 'date', 'file', 'header', 'hidden', 'paragraph', 'number', 'radio-group', 'select', 'text', 'textarea', 'draggable'],
+      controlOrder: ['content-area','autocomplete', 'button', 'checkbox', 'checkbox-group', 'date', 'file', 'header', 'hidden', 'paragraph', 'number', 'radio-group', 'select', 'text', 'textarea', 'draggable'],
       dataType: 'xml',
       /**
        * Field types to be disabled
@@ -1450,6 +1486,7 @@ function formBuilderEventsFn() {
         },
         text: 'Text Field',
         textArea: 'Text Area',
+        contentArea: 'Content',
         toggle: 'Toggle',
         warning: 'Warning!',
         viewXML: '&lt;/&gt;',
@@ -1501,7 +1538,15 @@ function formBuilderEventsFn() {
         className: 'text-area',
         name: 'textarea'
       }
-    }, {
+    },{
+      label: opts.messages.content,
+      attrs: {
+        type: 'content-area',
+        className: 'content-area',
+        name: 'content-area'
+      }
+    },
+      {
       label: opts.messages.text,
       attrs: {
         type: 'text',
@@ -1664,7 +1709,7 @@ function formBuilderEventsFn() {
       beforeStop: _helpers.beforeStop,
       start: _helpers.startMoving,
       stop: _helpers.stopMoving,
-      cancel: 'input, select, span, .disabled, .form-group, .btn, .dropzone',
+      cancel: 'input, select, span, .disabled, .form-group, .btn, .dropzone, .mce-tinymce',
       placeholder: 'frmb-placeholder'
     });
 
@@ -1927,6 +1972,10 @@ function formBuilderEventsFn() {
       appendFieldLi(opts.messages.textArea, advFields(values), values);
     };
 
+    var appendContentArea = function appendContentArea(values) {
+      appendContentFieldLi(opts.messages.contentArea, advFields(values), values);
+    };
+
     var appendInput = function appendInput(values) {
       var type = values.type || 'text';
       appendFieldLi(opts.messages[type], advFields(values), values);
@@ -2061,6 +2110,7 @@ function formBuilderEventsFn() {
         'select': appendSelectList,
         'rich-text': appendTextarea,
         'textarea': appendTextarea,
+        'content-area': appendContentArea,
         'radio-group': appendSelectList,
         'checkbox-group': appendSelectList,
         'draggable':appendSelectList
@@ -2115,6 +2165,10 @@ function formBuilderEventsFn() {
         advFields.push(numberAttribute('min', values));
         advFields.push(numberAttribute('max', values));
         advFields.push(numberAttribute('step', values));
+      }
+
+      if (values.type === 'content') {
+
       }
 
       // Placeholder
@@ -2373,7 +2427,9 @@ function formBuilderEventsFn() {
       liContents += '<div class="form-elements">';
 
       // liContents += requiredField(values);
+      if (values.type === 'content') {
 
+      }
       if (values.type === 'checkbox') {
         liContents += '<div class="form-group">';
         liContents += '<label>&nbsp;</label>';
@@ -2391,6 +2447,72 @@ function formBuilderEventsFn() {
         'type': values.type,
         id: lastID
       }),
+          $li = $(li);
+
+      $li.data('fieldData', { attrs: values });
+
+      if (typeof _helpers.stopIndex !== 'undefined') {
+        $('> li', $sortableFields).eq(_helpers.stopIndex).after($li);
+      } else {
+        $sortableFields.append($li);
+      }
+
+      _helpers.updatePreview($li);
+
+      if (opts.editOnAdd) {
+        _helpers.closeAllEdit($sortableFields);
+        _helpers.toggleEdit(lastID);
+      }
+
+      lastID = _helpers.incrementId(lastID);
+    };
+
+    var appendContentFieldLi = function appendFieldLi(title, field, values) {
+      var labelVal = $(field).find('input[name="label"]').val(),
+          label = labelVal ? labelVal : title;
+
+      var delBtn = _helpers.markup('a', opts.messages.remove, {
+            id: 'del_' + lastID,
+            className: 'del-button btn delete-confirm',
+            title: opts.messages.removeMessage
+          }),
+          toggleBtn = _helpers.markup('a', null, {
+            id: lastID + '-edit',
+            className: 'toggle-form btn icon-pencil',
+            title: opts.messages.hide
+          }),
+          required = values.required,
+          toggle = values.toggle || undefined,
+          tooltip = values.description !== '' ? '<span class="tooltip-element" tooltip="' + values.description + '">?</span>' : '';
+
+      var liContents = _helpers.markup('div', [toggleBtn, delBtn], { className: 'field-actions' }).outerHTML;
+
+      liContents += '<label class="field-label">' + label + '</label>' + tooltip + '<span class="required-asterisk" ' + (required ? 'style="display:inline"' : '') + '> *</span>';
+      liContents += _helpers.markup('div', '', { className: 'prev-holder' }).outerHTML;
+      liContents += '<div id="' + lastID + '-holder" class="frm-holder">';
+      liContents += '<div class="form-elements">';
+
+      // liContents += requiredField(values);
+      if (values.type === 'content') {
+
+      }
+      if (values.type === 'checkbox') {
+        liContents += '<div class="form-group">';
+        liContents += '<label>&nbsp;</label>';
+        liContents += '<input class="checkbox-toggle" type="checkbox" value="1" name="toggle-' + lastID + '" id="toggle-' + lastID + '"' + (toggle === 'true' ? ' checked' : '') + ' /><label class="toggle-label" for="toggle-' + lastID + '">' + opts.messages.toggle + '</label>';
+        liContents += '</div>';
+      }
+      liContents += field;
+      liContents += _helpers.markup('a', opts.messages.close, { className: 'close-field' }).outerHTML;
+
+      liContents += '</div>';
+      liContents += '</div>';
+
+      var li = _helpers.markup('li', liContents, {
+            'class': values.type + '-field form-field',
+            'type': values.type,
+            id: lastID
+          }),
           $li = $(li);
 
       $li.data('fieldData', { attrs: values });
@@ -2717,7 +2839,7 @@ function formBuilderEventsFn() {
         $(element).data('formBuilder', formBuilder);
       }
       $("<button class='btn btn-disabled'>Отправить</button>").insertAfter($(".frmb"));
-      console.log($(".frmb"));
+
     });
     $()
   };
@@ -2779,6 +2901,8 @@ function formBuilderEventsFn() {
             var enableOther = $('[name="enable-other"]:checked', field).length;
 
             var types = _helpers.getTypes($field);
+            // tinymce.get('tinyEditor').getContent()
+
             var xmlAttrs = {
               className: fieldData.className,
               description: $('input.fld-description', $field).val(),
@@ -2795,6 +2919,10 @@ function formBuilderEventsFn() {
               max: $('input.fld-max', $field).val(),
               step: $('input.fld-step', $field).val()
             };
+            if (types.type == 'content-area') {
+              xmlAttrs.editorContent = tinyMCE.activeEditor.getContent();
+              console.log($field, "FIDATA");
+            }
             if (roleVals.length) {
               xmlAttrs.role = roleVals.join(',');
             }
