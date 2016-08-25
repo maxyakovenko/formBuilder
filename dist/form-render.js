@@ -288,11 +288,10 @@ function FormRenderFn(options, element) {
         }
         fieldMarkup = fieldLabel + '<select ' + fieldAttrsString + '>' + optionsMarkup + '</select>';
         break;
-      case 'content':
-        console.log("CONTENT", fieldAttrsString);
-        delete fieldAttrs.type;
-        delete fieldAttrs.value;
-        fieldMarkup = fieldLabel + '<textarea ' + fieldAttrsString + '></textarea>';
+      case 'content-area':
+        console.log("CONTENTBANG", fieldAttrs );
+        var html = $.parseHTML( fieldAttrs['editor-content'] );
+        fieldMarkup = html[0].data;
         break;
       case 'checkbox-group':
       case 'radio-group':

@@ -537,7 +537,6 @@ function formBuilderHelpersFn(opts, formBuilder) {
     }
 
     previewData.className = $('.fld-className', field).val() || fieldData.className || '';
-    console.log(previewData.className);
 
     var placeholder = $('.fld-placeholder', field).val();
     if (placeholder) {
@@ -589,7 +588,6 @@ function formBuilderHelpersFn(opts, formBuilder) {
       });
     }
     if (fieldType.match(/(content)/)) {
-      console.log(fieldData);
       if(typeof fieldData.attrs != 'undefined') {
         previewData.editorContent = fieldData.attrs['editor-content'];
       }
@@ -601,9 +599,6 @@ function formBuilderHelpersFn(opts, formBuilder) {
     $('.fld-className', field).val(previewData.className);
     field.data('fieldData', previewData);
     preview = _helpers.fieldPreview(previewData);
-    if (fieldType.match(/(content)/)) {
-      console.log(preview, previewData);
-    }
 
     $prevHolder.html(preview);
 
@@ -634,6 +629,7 @@ function formBuilderHelpersFn(opts, formBuilder) {
         preview = '<textarea ' + attrsString + '></textarea>';
         break;
       case 'content-area':
+        console.log(attrs);
         if (attrs.editorContent) {
           preview = '<textarea ' + attrsString + '>' + attrs.editorContent + '</textarea>';
         }
@@ -642,18 +638,17 @@ function formBuilderHelpersFn(opts, formBuilder) {
         }
 
         setTimeout(function(){
-          $(".text-area").html($(".hideContent").html());
+          if (attrs.className.indexOf("editorInput") !== -1 && window.editorContent) {
+            $(".editorInput").val(window.editorContent);
+            delete window.editorContent;
+            console.log(window.editorContent);
+          }
           var element = $(".content-area").tinymce({
             script_url: "http://cdn.tinymce.com/4/tinymce.min.js",
             plugins: "code, codesample, textcolor, colorpicker, fullscreen, image, link, media, preview, table, autoresize",
             height: 300
           })
-          console.log(element, "ELEMENTA");
-          // var data = ;
-          // tinyMCE.activeEditor.setContent(data + " html");
-          /*tinymce.get("editorContent").setContent($(".hideContent").html());*/
-          // element.html($(".hideContent").html());
-        }, 100);
+        }, 0);
         break;
       case 'button':
       case 'submit':
@@ -1395,6 +1390,7 @@ function formBuilderEventsFn() {
         draggable: 'Fill in the word',
         clearAllMessage: 'Are you sure you want to clear all fields?',
         clearAll: 'Clear',
+        previewAll: 'Preview',
         close: 'Close',
         content: 'Content',
         copy: 'Copy To Clipboard',
@@ -1685,19 +1681,24 @@ function formBuilderEventsFn() {
     var viewData = _helpers.markup('button', viewDataText, {
       id: frmbID + '-view-data',
       type: 'button',
-      className: 'view-data btn btn-default'
+      className: 'view-data btn btn-default btn-sm'
     }),
         clearAll = _helpers.markup('button', opts.messages.clearAll, {
       id: frmbID + '-clear-all',
       type: 'button',
-      className: 'clear-all btn btn-default'
+      className: 'clear-all btn btn-default btn-xs'
+    }),
+        previewAll = _helpers.markup('button', opts.messages.previewAll, {
+      id: frmbID + '-preview-all',
+      type: 'button',
+      className: 'preview-all btn btn-default btn-xs'
     }),
         saveAll = _helpers.markup('button', opts.messages.save, {
-      className: 'btn btn-primary ' + opts.prefix + 'save',
+      className: 'btn btn-primary ' + opts.prefix + 'save btn-xs',
       id: frmbID + '-save',
       type: 'button'
     }),
-        formActions = _helpers.markup('div', [clearAll, saveAll], {
+        formActions = _helpers.markup('div', [clearAll, previewAll, saveAll], {
       className: 'form-actions btn-group'
     }).outerHTML;
 
@@ -2902,7 +2903,6 @@ function formBuilderEventsFn() {
 
             var types = _helpers.getTypes($field);
             // tinymce.get('tinyEditor').getContent()
-
             var xmlAttrs = {
               className: fieldData.className,
               description: $('input.fld-description', $field).val(),
@@ -2920,8 +2920,10 @@ function formBuilderEventsFn() {
               step: $('input.fld-step', $field).val()
             };
             if (types.type == 'content-area') {
-              xmlAttrs.editorContent = tinyMCE.activeEditor.getContent();
-              console.log($field, "FIDATA");
+
+              xmlAttrs.tinyid = $field.find("textarea.content-area").attr("id");
+              console.log(tinymce.get(xmlAttrs.tinyid), $field, "TINU");
+              xmlAttrs.editorContent = tinymce.get(xmlAttrs.tinyid).getContent();
             }
             if (roleVals.length) {
               xmlAttrs.role = roleVals.join(',');
@@ -2941,6 +2943,7 @@ function formBuilderEventsFn() {
             }
             xmlField = _helpers.markup('field', fieldContent, xmlAttrs);
             serialStr += '\n\t\t' + xmlField.outerHTML;
+            console.log(xmlAttrs, xmlField, serialStr, "FD");
           }
         });
         serialStr += '\n\t</fields>\n</form-template>';
