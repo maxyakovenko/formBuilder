@@ -599,11 +599,17 @@ function formBuilderHelpersFn(opts, formBuilder) {
     $('.fld-className', field).val(previewData.className);
     field.data('fieldData', previewData);
     preview = _helpers.fieldPreview(previewData);
-
     $prevHolder.html(preview);
-
-
     $('input[toggle]', $prevHolder).kcToggle();
+    if (window.editorContent){
+      $(".editorInput").val(window.editorContent);
+      $(".editorInput").attr("editorContent", window.editorContent);
+    }
+    $(".content-area").tinymce({
+      script_url: "http://cdn.tinymce.com/4/tinymce.min.js",
+      plugins: "code, codesample, textcolor, colorpicker, fullscreen, image, link, media, preview, table, autoresize",
+      height: 300
+    });
   };
 
   /**
@@ -636,19 +642,6 @@ function formBuilderHelpersFn(opts, formBuilder) {
         else {
           preview = '<textarea ' + attrsString + '></textarea>';
         }
-
-        setTimeout(function(){
-          if (attrs.className.indexOf("editorInput") !== -1 && window.editorContent) {
-            $(".editorInput").val(window.editorContent);
-            delete window.editorContent;
-            console.log(window.editorContent);
-          }
-          var element = $(".content-area").tinymce({
-            script_url: "http://cdn.tinymce.com/4/tinymce.min.js",
-            plugins: "code, codesample, textcolor, colorpicker, fullscreen, image, link, media, preview, table, autoresize",
-            height: 300
-          })
-        }, 0);
         break;
       case 'button':
       case 'submit':
@@ -1117,6 +1110,10 @@ function formBuilderHelpersFn(opts, formBuilder) {
       _helpers.save();
     }, 500);
   };
+
+  $(document).on("click", ".preview-all", function(){
+    _helpers.save();
+  });
 
   /**
    * If user re-orders the elements their order should be saved.
