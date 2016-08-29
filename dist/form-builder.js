@@ -2836,8 +2836,6 @@ function formBuilderEventsFn() {
         formBuilder = new FormBuilder(options, element);
         $(element).data('formBuilder', formBuilder);
       }
-      $("<button class='btn btn-disabled'>Отправить</button>").insertAfter($(".frmb"));
-
     });
     $()
   };
