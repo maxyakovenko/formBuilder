@@ -605,11 +605,13 @@ function formBuilderHelpersFn(opts, formBuilder) {
       $(".editorInput").val(window.editorContent);
       $(".editorInput").attr("editorContent", window.editorContent);
     }
-    $(".content-area").tinymce({
-      script_url: "http://cdn.tinymce.com/4/tinymce.min.js",
-      plugins: "code, codesample, textcolor, colorpicker, fullscreen, image, link, media, preview, table, autoresize",
-      height: 300
+    tinymce.init({
+      selector: '.content-area',
+      plugins: "textcolor, colorpicker, fullscreen, image, link, media, preview, table, autoresize",
+      toolbar1: 'insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image',
+      toolbar2: 'print preview media | forecolor backcolor emoticons',
     });
+
   };
 
   /**
@@ -635,7 +637,6 @@ function formBuilderHelpersFn(opts, formBuilder) {
         preview = '<textarea ' + attrsString + '></textarea>';
         break;
       case 'content-area':
-        console.log(attrs);
         if (attrs.editorContent) {
           preview = '<textarea ' + attrsString + '>' + attrs.editorContent + '</textarea>';
         }
@@ -2044,6 +2045,7 @@ function formBuilderEventsFn() {
 
       var field = '';
 
+
       field += advFields(values);
       field += '<div class="form-group field-options">';
       field += '<label class="false-label">' + opts.messages.selectOptions + '</label>';
@@ -2111,7 +2113,7 @@ function formBuilderEventsFn() {
         'content-area': appendContentArea,
         'radio-group': appendSelectList,
         'checkbox-group': appendSelectList,
-        'draggable':appendSelectList
+        'draggable':appendDraggableList
       };
 
       values = values || '';
@@ -2818,7 +2820,10 @@ function formBuilderEventsFn() {
     }
 
     document.dispatchEvent(formBuilder.events.loaded);
-
+    formBuilder.actions = {
+      clearFields: _helpers.removeAllfields,
+      save: _helpers.save
+    };
     return formBuilder;
   };
 
@@ -2917,7 +2922,6 @@ function formBuilderEventsFn() {
             if (types.type == 'content-area') {
 
               xmlAttrs.tinyid = $field.find("textarea.content-area").attr("id");
-              console.log(tinymce.get(xmlAttrs.tinyid), $field, "TINU");
               xmlAttrs.editorContent = tinymce.get(xmlAttrs.tinyid).getContent();
             }
             if (roleVals.length) {
@@ -2938,7 +2942,6 @@ function formBuilderEventsFn() {
             }
             xmlField = _helpers.markup('field', fieldContent, xmlAttrs);
             serialStr += '\n\t\t' + xmlField.outerHTML;
-            console.log(xmlAttrs, xmlField, serialStr, "FD");
           }
         });
         serialStr += '\n\t</fields>\n</form-template>';
